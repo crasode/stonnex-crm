@@ -1,0 +1,65 @@
+// Stonnex CRM — Prisma schema
+// NOTE: status is a string column (not enum) so we can use SQLite locally
+// and Postgres in production with zero schema changes. Type safety is
+// enforced at the app layer via `LeadStatus` in src/lib/status.ts.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Lead {
+  id          String     @id @default(cuid())
+  externalId  String?    @unique
+  source      String
+  fullName    String?
+  phone       String?
+  email       String?
+  address     String?
+  city        String?
+  service     String?
+  estSqFt     Int?
+  quote       Float?
+  status      String     @default("NEW_LEAD")
+  assignedTo  String?
+  followUpAt  DateTime?
+  receivedAt  DateTime   @default(now())
+  notes       Note[]
+  activities  Activity[]
+  rawPayload  String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([source])
+  @@index([status])
+  @@index([city])
+  @@index([receivedAt])
+}
+
+model Note {
+  id        String   @id @default(cuid())
+  leadId    String
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  author    String
+  body      String
+  createdAt DateTime @default(now())
+
+  @@index([leadId])
+}
+
+model Activity {
+  id        String   @id @default(cuid())
+  leadId    String
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  kind      String
+  actor     String?
+  meta      String?
+  createdAt DateTime @default(now())
+
+  @@index([leadId])
+  @@index([kind])
+}
